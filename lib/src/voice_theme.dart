@@ -52,6 +52,29 @@ class VoiceTheme {
     );
   }
 
+  /// The same theme with one role replaced.
+  ///
+  /// An app whose ColorScheme.primary is not its accent needs this: the parent
+  /// app's is a near-black slate used for app bars, so reading the theme drew
+  /// a black play button in a blue conversation.
+  VoiceTheme copyWith({
+    Color? accent,
+    Color? accentSoft,
+    Color? danger,
+    Color? warning,
+    Color? ink,
+    Color? muted,
+  }) {
+    return VoiceTheme(
+      accent: accent ?? this.accent,
+      accentSoft: accentSoft ?? this.accentSoft,
+      danger: danger ?? this.danger,
+      warning: warning ?? this.warning,
+      ink: ink ?? this.ink,
+      muted: muted ?? this.muted,
+    );
+  }
+
   /// The colours for a message bubble, which may be the sender's own tinted
   /// one rather than the surface colour.
   VoiceTheme onBubble({required bool tinted}) {
