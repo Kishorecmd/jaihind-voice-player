@@ -1,0 +1,26 @@
+name: jaihind_voice_player
+description: >-
+  Playing a voice note: the player, the waveform and the formatting shared by
+  every Jaihind app. Deliberately free of any recording dependency, so an app
+  that only listens does not ask for a microphone.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Playback only. record_android declares RECORD_AUDIO in its own manifest,
+  # which merges into whatever depends on it -- so the driver app, which never
+  # records anything, would have asked for a microphone.
+  audioplayers: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
