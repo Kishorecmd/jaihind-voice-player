@@ -92,7 +92,14 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
         await _player.pause();
         return;
       }
-      await _player.play(UrlSource(widget.url));
+
+      Source source;
+      if (widget.url.startsWith('http://') || widget.url.startsWith('https://')) {
+        source = UrlSource(widget.url);
+      } else {
+        source = DeviceFileSource(widget.url);
+      }
+      await _player.play(source);
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
@@ -143,69 +150,99 @@ class _VoiceNotePlayerState extends State<VoiceNotePlayer> {
         : (_position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 2),
       child: SizedBox(
         width: 210,
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Semantics(
               button: true,
               label: _playing ? 'Pause voice note' : 'Play voice note',
-              child: InkWell(
+              child: GestureDetector(
                 onTap: _toggle,
-                customBorder: const CircleBorder(),
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color: onDark ? Colors.white.withAlpha(48) : ink,
+                    color: onDark ? Colors.white : const Color(0xFF64748B),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _playing ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 21,
+                    _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: onDark ? const Color(0xFF2563EB) : Colors.white,
+                    size: 20,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 4,
-                      backgroundColor: onDark
-                          ? Colors.white.withAlpha(60)
-                          : Colors.black.withAlpha(26),
-                      valueColor: AlwaysStoppedAnimation(
-                        onDark ? Colors.white : ink,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    // Elapsed once it is running, the whole length before that,
-                    // so a parent can tell whether it is worth starting.
-                    total == null
-                        ? 'Voice note'
-                        : (_position > Duration.zero
-                              ? '${_clock(_position)} / ${_clock(total)}'
-                              : _clock(total)),
-                    style: TextStyle(fontSize: 11, color: muted),
-                  ),
-                ],
+              child: CustomPaint(
+                size: const Size(double.infinity, 24),
+                painter: _FakeWaveformPainter(
+                  progress: progress,
+                  activeColor: onDark ? Colors.white : const Color(0xFF64748B),
+                  inactiveColor: onDark ? Colors.white.withAlpha(60) : Colors.black.withAlpha(26),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              total == null ? '0:00' : _clock(total),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: onDark ? Colors.white.withAlpha(200) : const Color(0xFF64748B),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _FakeWaveformPainter extends CustomPainter {
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _FakeWaveformPainter({
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barCount = 30;
+    final spacing = size.width / barCount;
+    
+    // A fixed pseudo-random pattern of bar heights
+    final heights = [0.3, 0.5, 0.8, 0.6, 0.4, 0.3, 0.5, 0.9, 0.7, 0.4, 0.3, 0.6, 0.8, 1.0, 0.8, 0.5, 0.3, 0.4, 0.7, 0.9, 0.6, 0.4, 0.3, 0.5, 0.8, 0.5, 0.3, 0.4, 0.6, 0.4];
+
+    final paint = Paint()
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < barCount; i++) {
+      final x = i * spacing + (spacing / 2);
+      final isPlayed = (i / barCount) <= progress;
+      paint.color = isPlayed ? activeColor : inactiveColor;
+      
+      final barHeight = size.height * heights[i % heights.length];
+      final top = (size.height - barHeight) / 2;
+      
+      canvas.drawLine(Offset(x, top), Offset(x, top + barHeight), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FakeWaveformPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+           oldDelegate.activeColor != activeColor ||
+           oldDelegate.inactiveColor != inactiveColor;
   }
 }
